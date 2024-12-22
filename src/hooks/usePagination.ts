@@ -1,39 +1,30 @@
-import { useState, useMemo, useCallback } from "react";
-import { PaginationConfig, PaginationResult } from "@/types";
-import { calculateTotalPages } from "@/utils/pagination/calculateTotalPages";
-import { getPaginatedItems } from "@/utils/pagination/getPaginatedItems";
-import { getNextPage } from "@/utils/pagination/getNextPage";
+import { useState, useCallback } from 'react';
 
-export const usePagination = <T>({
-  items,
-  itemsPerPage,
-  initialPage = 1,
-}: PaginationConfig<T>): PaginationResult<T> => {
-  const [currentPage, setCurrentPage] = useState<number>(initialPage);
+interface UsePaginationProps<T> {
+  items: T[];
+  itemsPerPage: number;
+}
 
-  const totalPages = useMemo(
-    () => calculateTotalPages(items.length, itemsPerPage),
-    [items, itemsPerPage]
-  );
+export function usePagination<T>({ items, itemsPerPage }: UsePaginationProps<T>) {
+  const [currentPage, setCurrentPage] = useState(1);
+  const totalPages = Math.ceil(items.length / itemsPerPage);
 
-  const paginatedItems = useMemo(
-    () => getPaginatedItems(items, currentPage, itemsPerPage),
-    [items, currentPage, itemsPerPage]
-  );
+  const handlePageChange = useCallback((direction: "next" | "prev") => {
+    setCurrentPage(prev => {
+      if (direction === "next" && prev < totalPages) return prev + 1;
+      if (direction === "prev" && prev > 1) return prev - 1;
+      return prev;
+    });
+  }, [totalPages]);
 
-  const handlePageChange = useCallback(
-    (direction: "next" | "prev") => {
-      setCurrentPage((prevPage) =>
-        getNextPage(prevPage, direction, totalPages)
-      );
-    },
-    [totalPages]
-  );
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const paginatedItems = items.slice(startIndex, startIndex + itemsPerPage);
 
   return {
     currentPage,
+    setCurrentPage,
     totalPages,
     paginatedItems,
     handlePageChange,
   };
-};
+}
